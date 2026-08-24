@@ -1,5 +1,19 @@
-node_modules
-# Keep environment variables out of version control
-.env
+node_modules/
+dist/
 
-/src/generated/prisma
+# Secrets — never commit real values
+.env
+.env.local
+.env.*.local
+
+# Logs
+npm-debug.log*
+*.log
+
+# OS/editor
+.DS_Store
+.vscode/
+.idea/
+
+# Test coverage output
+coverage/

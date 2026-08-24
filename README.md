@@ -5,7 +5,7 @@ Multi-tenant project management API. Node.js/Express, PostgreSQL (Prisma), Redis
 ## Quick start
 
 ```bash
-git clone <repo-url>
+git clone https://github.com/SanketGamer/Task_flow.git
 cd taskflow
 cp .env.example .env          # fill in real secrets for JWT_ACCESS_SECRET / JWT_REFRESH_SECRET
 docker compose up --build

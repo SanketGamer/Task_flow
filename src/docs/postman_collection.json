@@ -1,0 +1,186 @@
+{
+  "info": {
+    "name": "TaskFlow API",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:3000" },
+    { "key": "accessToken", "value": "" },
+    { "key": "refreshToken", "value": "" },
+    { "key": "projectId", "value": "" },
+    { "key": "taskId", "value": "" },
+    { "key": "jobId", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "Health",
+      "item": [
+        { "name": "Health check", "request": { "method": "GET", "url": "{{baseUrl}}/health" } }
+      ]
+    },
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Register",
+          "event": [{
+            "listen": "test",
+            "script": { "exec": [
+              "const body = pm.response.json();",
+              "if (body.accessToken) pm.collectionVariables.set('accessToken', body.accessToken);",
+              "if (body.refreshToken) pm.collectionVariables.set('refreshToken', body.refreshToken);"
+            ]}
+          }],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/auth/register",
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"alice@acme.com\",\n  \"password\": \"Password123!\",\n  \"name\": \"Alice\",\n  \"organizationName\": \"Acme Inc\"\n}" }
+          }
+        },
+        {
+          "name": "Login",
+          "event": [{
+            "listen": "test",
+            "script": { "exec": [
+              "const body = pm.response.json();",
+              "if (body.accessToken) pm.collectionVariables.set('accessToken', body.accessToken);",
+              "if (body.refreshToken) pm.collectionVariables.set('refreshToken', body.refreshToken);"
+            ]}
+          }],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/auth/login",
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"alice@acme.com\",\n  \"password\": \"Password123!\"\n}" }
+          }
+        },
+        {
+          "name": "Refresh",
+          "event": [{
+            "listen": "test",
+            "script": { "exec": [
+              "const body = pm.response.json();",
+              "if (body.accessToken) pm.collectionVariables.set('accessToken', body.accessToken);",
+              "if (body.refreshToken) pm.collectionVariables.set('refreshToken', body.refreshToken);"
+            ]}
+          }],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/auth/refresh",
+            "body": { "mode": "raw", "raw": "{\n  \"refreshToken\": \"{{refreshToken}}\"\n}" }
+          }
+        },
+        {
+          "name": "Logout",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/auth/logout",
+            "body": { "mode": "raw", "raw": "{\n  \"refreshToken\": \"{{refreshToken}}\"\n}" }
+          }
+        },
+        {
+          "name": "Logout all devices",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+            ],
+            "url": "{{baseUrl}}/auth/logout",
+            "body": { "mode": "raw", "raw": "{\n  \"refreshToken\": \"{{refreshToken}}\",\n  \"allDevices\": true\n}" }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Projects",
+      "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{accessToken}}" }] },
+      "item": [
+        {
+          "name": "Create project",
+          "event": [{
+            "listen": "test",
+            "script": { "exec": [
+              "const body = pm.response.json();",
+              "if (body.id) pm.collectionVariables.set('projectId', body.id);"
+            ]}
+          }],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/projects",
+            "body": { "mode": "raw", "raw": "{\n  \"name\": \"Website Revamp\",\n  \"description\": \"Marketing site redesign\"\n}" }
+          }
+        },
+        { "name": "List projects", "request": { "method": "GET", "url": "{{baseUrl}}/projects?page=1&limit=20" } },
+        { "name": "Get project", "request": { "method": "GET", "url": "{{baseUrl}}/projects/{{projectId}}" } },
+        {
+          "name": "Update project",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/projects/{{projectId}}",
+            "body": { "mode": "raw", "raw": "{\n  \"name\": \"Website Revamp v2\"\n}" }
+          }
+        },
+        { "name": "Project dashboard", "request": { "method": "GET", "url": "{{baseUrl}}/projects/{{projectId}}/dashboard" } },
+        { "name": "Delete project", "request": { "method": "DELETE", "url": "{{baseUrl}}/projects/{{projectId}}" } }
+      ]
+    },
+    {
+      "name": "Tasks",
+      "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{accessToken}}" }] },
+      "item": [
+        {
+          "name": "Create task",
+          "event": [{
+            "listen": "test",
+            "script": { "exec": [
+              "const body = pm.response.json();",
+              "if (body.id) pm.collectionVariables.set('taskId', body.id);"
+            ]}
+          }],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/projects/{{projectId}}/tasks",
+            "body": { "mode": "raw", "raw": "{\n  \"title\": \"Design homepage hero\",\n  \"description\": \"Above-the-fold section\",\n  \"status\": \"todo\",\n  \"priority\": \"high\",\n  \"dueDate\": \"2026-09-15T00:00:00.000Z\"\n}" }
+          }
+        },
+        { "name": "List tasks", "request": { "method": "GET", "url": "{{baseUrl}}/projects/{{projectId}}/tasks?page=1&limit=20" } },
+        { "name": "List tasks (filtered)", "request": { "method": "GET", "url": "{{baseUrl}}/projects/{{projectId}}/tasks?status=todo&priority=high" } },
+        { "name": "Get task", "request": { "method": "GET", "url": "{{baseUrl}}/tasks/{{taskId}}" } },
+        {
+          "name": "Update task",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/tasks/{{taskId}}",
+            "body": { "mode": "raw", "raw": "{\n  \"status\": \"in_progress\"\n}" }
+          }
+        },
+        {
+          "name": "Assign user to task",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/tasks/{{taskId}}/assignments",
+            "body": { "mode": "raw", "raw": "{\n  \"userId\": \"REPLACE_WITH_USER_ID\"\n}" }
+          }
+        },
+        { "name": "Unassign user from task", "request": { "method": "DELETE", "url": "{{baseUrl}}/tasks/{{taskId}}/assignments/REPLACE_WITH_USER_ID" } },
+        { "name": "Delete task", "request": { "method": "DELETE", "url": "{{baseUrl}}/tasks/{{taskId}}" } }
+      ]
+    },
+    {
+      "name": "Jobs",
+      "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{accessToken}}" }] },
+      "item": [
+        { "name": "Get job status", "request": { "method": "GET", "url": "{{baseUrl}}/jobs/{{jobId}}" } }
+      ]
+    }
+  ]
+}

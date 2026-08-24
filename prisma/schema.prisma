@@ -1,0 +1,167 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum OrgRole {
+  org_admin
+  member
+}
+
+enum TaskStatus {
+  todo
+  in_progress
+  review
+  done
+}
+
+enum TaskPriority {
+  low
+  medium
+  high
+  urgent
+}
+
+model User {
+  id           String   @id @default(uuid())
+  email        String   @unique
+  passwordHash String
+  name         String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  orgMemberships OrgMember[]
+  assignments    TaskAssignment[]
+  comments       Comment[]
+  refreshTokens  RefreshToken[]
+
+  // email is the login lookup on every request — unique constraint
+  // already indexes it, no extra @@index needed.
+  @@map("users")
+}
+
+model Organization {
+  id        String   @id @default(uuid())
+  name      String
+  slug      String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  members  OrgMember[]
+  projects Project[]
+
+  @@map("organizations")
+}
+
+model OrgMember {
+  id       String   @id @default(uuid())
+  userId   String
+  orgId    String
+  role     OrgRole  @default(member)
+  joinedAt DateTime @default(now())
+
+  user User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  org  Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+
+  // A user can only have one membership row per org.
+  @@unique([userId, orgId])
+  // Every authenticated request resolves "who is this user in this org" —
+  // filtering org_members by orgId (e.g. listing all admins) is frequent.
+  @@index([orgId])
+  @@map("org_members")
+}
+
+model Project {
+  id          String    @id @default(uuid())
+  orgId       String
+  name        String
+  description String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  deletedAt   DateTime? // bonus: soft delete instead of hard delete
+
+  org   Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  tasks Task[]
+
+  // Every project list/read is scoped "give me this org's projects" —
+  // this is the single most-hit filter in the whole multi-tenant model.
+  @@index([orgId])
+  @@map("projects")
+}
+
+model Task {
+  id          String       @id @default(uuid())
+  projectId   String
+  title       String
+  description String?
+  status      TaskStatus   @default(todo)
+  priority    TaskPriority @default(medium)
+  dueDate     DateTime?
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  deletedAt   DateTime?    // bonus: soft delete
+
+  project     Project          @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  assignments TaskAssignment[]
+  comments    Comment[]
+
+  @@index([projectId])          // list tasks for a project
+  @@index([status])             // filter: ?status=in_progress
+  @@index([priority])           // filter: ?priority=urgent
+  @@index([dueDate])            // filter: due-date range queries
+  @@map("tasks")
+}
+
+model TaskAssignment {
+  id         String   @id @default(uuid())
+  taskId     String
+  userId     String
+  assignedAt DateTime @default(now())
+
+  task Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  // RESTRICT: deleting a user must not silently erase assignment history.
+  user User @relation(fields: [userId], references: [id], onDelete: Restrict)
+
+  // Prevents assigning the same user to the same task twice.
+  @@unique([taskId, userId])
+  // "What tasks is this user assigned to" is a common lookup.
+  @@index([userId])
+  @@map("task_assignments")
+}
+
+model Comment {
+  id        String   @id @default(uuid())
+  taskId    String
+  authorId  String
+  body      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  task   Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  // RESTRICT: preserve authorship record even if we later deactivate users.
+  author User @relation(fields: [authorId], references: [id], onDelete: Restrict)
+
+  @@index([taskId]) // fetching a task's comment thread
+  @@map("comments")
+}
+
+model RefreshToken {
+  id        String    @id @default(uuid())
+  userId    String
+  tokenHash String    @unique
+  expiresAt DateTime
+  revokedAt DateTime?
+  createdAt DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // 
+  @@index([userId])
+
+  //prisma state to db state
+  @@map("refresh_tokens") 
+}
